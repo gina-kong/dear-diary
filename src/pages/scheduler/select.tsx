@@ -7,7 +7,8 @@ import {
   type DatePickerProps,
   type SelectProps,
 } from 'antd'
-import { useSelectedModules, useSchedule } from './store'
+import { useSchedule } from './store'
+import dayjs from 'dayjs'
 
 const modules: string[] = [
   'Arrays',
@@ -19,12 +20,10 @@ const modules: string[] = [
 ]
 
 export const SchedulerSelect = () => {
-  const setSelectedModules = useSelectedModules(
-    (state) => state.setSelectedModules
-  )
-  const selectedModules = useSelectedModules((state) => state.selectedModules)
   const startDate = useSchedule((state) => state.startDate)
   const setStartDate = useSchedule((state) => state.setStartDate)
+  const selectedModules = useSchedule((state) => state.selectedModules)
+  const setSelectedModules = useSchedule((state) => state.setSelectedModules)
   const generateEvents = useSchedule((state) => state.generateEvents)
 
   const options: SelectProps['options'] = []
@@ -36,21 +35,25 @@ export const SchedulerSelect = () => {
   })
 
   const handleSelectChange = (modules: string[]) => {
-    setSelectedModules(modules)
+    if (!startDate) {
+      setSelectedModules(modules)
+    }
+    generateEvents(startDate as string, modules)
   }
 
   const handleDatePickerChange: DatePickerProps['onChange'] = (
     date,
     dateString
   ) => {
+    if (!date) return
     console.log('clicked: ' + dateString)
     setStartDate(dateString as string)
-    generateEvents(dateString as string)
+    if (selectedModules) generateEvents(dateString as string, selectedModules)
   }
 
   return (
     <div>
-      <DatePicker onChange={handleDatePickerChange} />
+      <DatePicker onChange={handleDatePickerChange} value={startDate ? dayjs(startDate) : null}/>
       <Row>
         <Col span={12}>
           <Select
@@ -58,6 +61,7 @@ export const SchedulerSelect = () => {
             style={{ width: '100%' }}
             placeholder="Select Modules"
             onChange={handleSelectChange}
+            value={selectedModules ?? []}
             options={options}
           />
         </Col>
@@ -66,7 +70,7 @@ export const SchedulerSelect = () => {
           <p>Selected order:</p>
           <List
             size="small"
-            dataSource={selectedModules}
+            dataSource={selectedModules ?? []}
             renderItem={(item, index) => (
               <List.Item>
                 {index + 1}. {item}
